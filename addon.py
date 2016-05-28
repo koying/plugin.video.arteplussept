@@ -46,6 +46,7 @@ prefer_vost = plugin.get_setting('prefer_vost', bool)
 quality = plugin.get_setting('quality', int)
 download_folder = plugin.get_setting('download_folder', str)
 download_quality = plugin.get_setting('download_quality', int)
+download_nfo = plugin.get_setting('download_nfo', bool)
 
 
 def get_menu_items():
@@ -114,6 +115,29 @@ def enqueue(vid):
 def download_file(vid):
     if download_folder:
         video = create_video(vid, True)
+
+#       <episodedetails>
+#        <title>A comme Aardvark</title>
+#        <plot>Oreilles d'├óne, queue de kangourou, groin de porc et une langue de 40 centim├¿tres... : l'aardvark ? nom anglais d├⌐riv├⌐ de l'afrikaans erdvark, appel├⌐ en fran├ºais oryct├⌐rope du Cap, mammif├¿re fourmilier d'Afrique, joue un r├┤le ├⌐cologique important en contr├┤lant la prolif├⌐ration des termites. Il peut atteindre 1,70 m├¿tres de long et peser 70 kilos. Il est tr├¿s rare d'en voir un, mais ├á force de pers├⌐v├⌐rance, l'├⌐quipe de tournage y est parvenue...</plot>
+#        <aired>2016-05-20</aired>
+#        <thumb>https://static-cdn.arte.tv/resize/iHUnL7JeIHhKhaq67nQ8AKqQSdc=/940x530/smart/apios/Img_data/18/060183-000-A_a-wie-aadvark_05.jpg</thumb>
+#        <season>0</season>
+#        <episode>0</episode>
+#       </episodedetails>
+
+        if download_nfo:
+          filename_nfo = vid + '_' + video['label'] + os.extsep + 'nfo'
+          fo = xbmcvfs.File(os.path.join(download_folder, filename_nfo), 'wb')
+          fo.write("<episodedetails>")
+          fo.write(str("<title>" + video['info']['title'] + "</title>"));
+          fo.write(str("<plot>" + video['info']['plot'] + "</plot>"));
+          fo.write(str("<aired>" + video['info']['aired'] + "</aired>"));
+          fo.write(str("<thumb>" + video['thumbnail'] + "</thumb>"));
+          fo.write("<season>0</season>");
+          fo.write("<episode>0</episode>");
+          fo.write("</episodedetails>")
+          fo.close()
+
         filename = vid + '_' + video['label'] + os.extsep + 'mp4'
         block_sz = 8192
         f = xbmcvfs.File(os.path.join(download_folder, filename), 'wb')
@@ -127,6 +151,7 @@ def download_file(vid):
             f.write(buff)
         f.close()
         plugin.notify(filename, plugin.get_string(30011))
+        
     else:
         plugin.notify(plugin.get_string(30013), plugin.get_string(30012))
 
@@ -193,10 +218,25 @@ def create_video(vid, downloading=False):
         if len(filtered) == 1:
             video = filtered[0]
             break
+    airdate = parse_date(data['videoJsonPlayer']['VDA'][:-6]) if "VDA" in data['videoJsonPlayer'] else None
+    title = data['videoJsonPlayer']['VTI'].encode('utf8')
+    if "VSU" in data['videoJsonPlayer']:
+        title += ' - {subtitle}'.format(subtitle=data['videoJsonPlayer']['VSU'].encode('utf8'))
+
     return {
         'label': data['caseProgram'] if downloading else None, #data['VTI'],
         'path': video['url'],
-        'thumbnail': data['VTU']['IUR']
+        'thumbnail': data['VTU']['IUR'],
+        'info': {
+            'title': title,
+            'duration': str(data['VDU']),
+            'genre': data['VCG'].encode('utf8'),
+            'plot': data['VDE'].encode('utf8'),
+            'plotoutline': data['V7T'].encode('utf8'),
+            'director': data['PPD'] if "PPD" in data else None ,
+            'year': data['productionYear'],
+            'aired': str(airdate)
+        }
     }
 
 # versionProg :

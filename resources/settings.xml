@@ -5,4 +5,5 @@
     <setting id="quality"          type="enum"   label="30052" values="SQ (High)|EQ (Medium)|HQ (Low)|MQ (Very Low)" default="0"/>
     <setting id="download_folder"  type="folder" label="30054" source="auto" option="writeable"/>
     <setting id="download_quality" type="enum"   label="30055" values="SQ (High)|EQ (Medium)|HQ (Low)|MQ (Very Low)" default="0"/>
+    <setting id="download_nfo"      type="bool"   label="30056" default="true"/>
 </settings>
