@@ -160,7 +160,7 @@ def create_item(data):
     broadcast = data.get('broadcast')
     video = data.get('video')
 
-    airdate = parse_date(broadcast.get('broadcastBeginRounded')[:-6]) if broadcast.get('broadcastBeginRounded') else None
+    airdate = parse_date(broadcast.get('broadcastBeginRounded')[:-6], '%a, %d %b %Y %H:%M:%S') if broadcast.get('broadcastBeginRounded') else None
     programId = str(video.get('programId'))
     label = '[B]{title}[/B]'.format(title=video.get('title').encode('utf8'))
     # suffixes
@@ -218,10 +218,10 @@ def create_video(vid, downloading=False):
         if len(filtered) == 1:
             video = filtered[0]
             break
-    airdate = parse_date(data['videoJsonPlayer']['VDA'][:-6]) if "VDA" in data['videoJsonPlayer'] else None
-    title = data['videoJsonPlayer']['VTI'].encode('utf8')
-    if "VSU" in data['videoJsonPlayer']:
-        title += ' - {subtitle}'.format(subtitle=data['videoJsonPlayer']['VSU'].encode('utf8'))
+    airdate = parse_date(data['VRA'][:-6], '%d/%m/%Y %H:%M:%S') if "VRA" in data else datetime.datetime.now()
+    title = data['VTI'].encode('utf8')
+    if "subtitle" in data:
+        title += ' - {subtitle}'.format(subtitle=data['subtitle'].encode('utf8'))
 
     return {
         'label': data['caseProgram'] if downloading else None, #data['VTI'],
@@ -230,11 +230,8 @@ def create_video(vid, downloading=False):
         'info': {
             'title': title,
             'duration': str(data['VDU']),
-            'genre': data['VCG'].encode('utf8'),
-            'plot': data['VDE'].encode('utf8'),
-            'plotoutline': data['V7T'].encode('utf8'),
-            'director': data['PPD'] if "PPD" in data else None ,
-            'year': data['productionYear'],
+            'genre': data['genre'].encode('utf8') if "genre" in data else None,
+            'plot': data['V7T'].encode('utf8') if "V7T" in data else None,
             'aired': str(airdate)
         }
     }
@@ -254,13 +251,13 @@ def load_json(url, params=None):
 
 
 # cosmetic parse functions
-def parse_date(datestr):
+def parse_date(datestr, format):
     date = None
     # workaround for datetime.strptime not working (NoneType ???)
     try:
-        date = datetime.datetime.strptime(datestr, '%a, %d %b %Y %H:%M:%S')
+        date = datetime.datetime.strptime(datestr, format)
     except TypeError:
-        date = datetime.datetime.fromtimestamp(time.mktime(time.strptime(datestr, '%a, %d %b %Y %H:%M:%S')))
+        date = datetime.datetime.fromtimestamp(time.mktime(time.strptime(datestr, format)))
     return date
 
 
